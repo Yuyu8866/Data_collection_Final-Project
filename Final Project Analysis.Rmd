@@ -23,3 +23,63 @@ cat("Rows:", nrow(raw), "Cols:", ncol(raw), "\n")
 ```
 
 
+
+#Clean Data
+```{r}
+# 2.1 Rename columns to short names
+names(raw) <- c("timestamp", "consent", "gender", "age", "year",
+                "field", "adhd", "use_sv", "platforms", "sv_time",
+                "sv_when", "task_type", "sv_interrupt",
+                "concentration",       
+                "long_read",           
+                "phone_check",         
+                "return_difficulty",   
+                "open_comment")
+
+
+# 2.2 Filter: only people who use short-video
+df <- raw %>% filter(use_sv == "Yes")
+cat("After filtering non-users: n =", nrow(df), "\n") 
+
+# 2.3 Convert IV to ordered factor
+df$sv_time <- factor(df$sv_time,
+                     levels = c("Less than 30 minutes",
+                                "30 minutes to 1 hour",
+                                "1 to 2 hours",
+                                "2 to 3 hours",
+                                "More than 3 hours"),
+                     ordered = TRUE)
+
+df$sv_time_num <- as.numeric(df$sv_time)
+
+# 2.4 Complete case analysis
+summary(df$concentration)
+
+n_before <- nrow(df)
+
+df <- df %>% filter(!is.na(concentration), !is.na(sv_time))
+
+n_after <- nrow(df)
+cat("Before complete-case filter: n =", n_before, "\n")
+cat("After complete-case filter:  n =", n_after, "\n")
+cat("Excluded due to missing IV/DV: n =", n_before - n_after, "\n")
+
+# 2.5 Clean field: merge small categories
+df$field_clean <- ifelse(df$field == "Accounting and Finance",
+                         "Business & Management",
+                         df$field)
+
+# 2.6 Final sanity check
+cat("\n--- Final analysis sample ---\n")
+cat("N =", nrow(df), "\n\n")
+
+cat("IV (sv_time) distribution:\n")
+print(table(df$sv_time))
+
+cat("\nDV (concentration) distribution:\n")
+print(table(df$concentration))
+
+cat("\nField (after merging) distribution:\n")
+print(table(df$field_clean))
+```
+
