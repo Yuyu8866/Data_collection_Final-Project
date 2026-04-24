@@ -199,3 +199,55 @@ p_h1b <- ggplot(df, aes(x = sv_time, y = concentration)) +
 ggsave("outputs/fig3_h1_boxplot.png", p_h1b,
        width = 7, height = 5, dpi = 300)
 ```
+
+
+#H2 — Mann-Whitney U Test (High vs Low usage)
+```{r}
+cat("\n========== H2: MANN-WHITNEY U TEST ==========\n")
+
+# 5.1 Build High vs Low groups
+# Low: <30min + 30m-1h
+# High: 2-3h + >3h
+df_h2 <- df %>%
+  mutate(usage_group = case_when(
+    sv_time %in% c("Less than 30 minutes", "30 minutes to 1 hour") ~ "Low",
+    sv_time %in% c("2 to 3 hours", "More than 3 hours") ~ "High",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(usage_group)) %>%
+  mutate(usage_group = factor(usage_group, levels = c("Low", "High")))
+
+cat("H2 sample distribution:\n")
+print(table(df_h2$usage_group))
+
+# 5.2 Run Mann-Whitney U test
+mw_result <- wilcox.test(concentration ~ usage_group,
+                         data = df_h2,
+                         alternative = "two.sided",
+                         exact = FALSE,       
+                         correct = TRUE)      
+print(mw_result)
+
+# 5.3 Calculate descriptives for each group
+cat("\n--- Group descriptives ---\n")
+med_stats <- df_h2 %>%
+  group_by(usage_group) %>%
+  summarise(n = n(),
+            median = median(concentration),
+            IQR = IQR(concentration),
+            .groups = "drop")
+print(med_stats)
+
+# 5.4 Visualise H2
+p_h2 <- ggplot(df_h2, aes(x = usage_group, y = concentration, fill = usage_group)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.15, alpha = 0.5) +
+  labs(x = "Usage group",
+       y = "Concentration difficulty",
+       title = "Concentration difficulty by usage group") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig4_h2_boxplot.png", p_h2,
+       width = 6, height = 5, dpi = 300)
+```
