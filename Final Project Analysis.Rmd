@@ -1,0 +1,25 @@
+---
+title: "Data Collection_Final Project"
+author: "Ruiyu Li"
+date: "2026-04-24"
+output: html_document
+---
+
+#1.Loading Data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)      
+library(ggplot2)   
+library(tidyr)       
+
+raw <- read.csv("../data/Time Spent on Short-video Platforms and Self-reported Difficulty on Academic Work Among University Students.csv",
+                stringsAsFactors = FALSE,
+                check.names = FALSE,          
+                encoding = "UTF-8",
+                na.strings = c("", "NA"))
+
+cat("Rows:", nrow(raw), "Cols:", ncol(raw), "\n")
+```
+
+
