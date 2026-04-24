@@ -28,7 +28,7 @@ names(raw) <- c("timestamp", "consent", "gender", "age", "year",
 
 
 
-#Clean Data
+#2.Clean Data
 ```{r}
 # 2.1 Rename columns to short names
 names(raw) <- c("timestamp", "consent", "gender", "age", "year",
@@ -82,7 +82,7 @@ cat("\nField (after merging) distribution:\n")
 print(table(df$field_clean))
 ```
 
-#Descriptive Statistics
+#3.Descriptive Statistics
 ```{r}
 # 3.1 Sample characteristics
 cat("\n========== SAMPLE CHARACTERISTICS ==========\n")
@@ -144,7 +144,7 @@ ggsave("outputs/fig2_dv_distribution.png", p_dv,
 
 
 
-# H1 — Spearman's Rank-Order Correlation
+#4.H1 — Spearman's Rank-Order Correlation
 ```{r}
 cat("\n========== H1: SPEARMAN CORRELATION ==========\n")
 
@@ -200,7 +200,7 @@ ggsave("outputs/fig3_h1_boxplot.png", p_h1b,
 ```
 
 
-#H2 — Mann-Whitney U Test (High vs Low usage)
+#5.H2 — Mann-Whitney U Test (High vs Low usage)
 ```{r}
 cat("\n========== H2: MANN-WHITNEY U TEST ==========\n")
 
@@ -251,7 +251,7 @@ ggsave("outputs/fig4_h2_boxplot.png", p_h2,
        width = 6, height = 5, dpi = 300)
 ```
 
-#H3 — Exploratory Analyses
+#6.H3 — Exploratory Analyses
 ```{r}
 cat("\n========== H3: EXPLORATORY ANALYSES ==========\n")
 
@@ -380,4 +380,46 @@ p_h3_task <- ggplot(df_task, aes(x = task_type_merged, y = concentration, fill =
 ggsave("outputs/fig7_h3_task.png", p_h3_task,
        width = 7.5, height = 5, dpi = 300)
 
+```
+#7.Save Results 
+```{r}
+sink("outputs/all_results.txt")
+
+cat("=============================================\n")
+cat("FULL RESULTS — Short-video & Concentration\n")
+cat("Analytic sample: n =", nrow(df), "\n")
+cat("=============================================\n\n")
+
+cat("=== H1: Spearman's Rank-Order Correlation ===\n")
+print(spearman_result)
+
+cat("\n=== H2: Mann-Whitney U (High vs Low usage) ===\n")
+print(mw_result)
+
+cat("\n=== H3.1: Mann-Whitney U (Gender) ===\n")
+print(gender_mw)
+print(gender_desc)
+
+cat("\n=== H3.2: ADHD (descriptive only) ===\n")
+print(adhd_desc)
+
+cat("\n=== H3.3: Kruskal-Wallis (Field) ===\n")
+print(kw_field)
+print(field_desc)
+
+cat("\n=== H3.4: Kruskal-Wallis (Task type) ===\n")
+print(kw_task)
+print(task_desc)
+
+sink()
+
+cat("\n✓ All results saved to outputs/all_results.txt\n\n")
+
+
+# R package citations
+cat("========== PACKAGE CITATIONS ==========\n")
+cat("\n--- R (base) ---\n"); print(citation())
+cat("\n--- dplyr ---\n"); print(citation("dplyr"))
+cat("\n--- ggplot2 ---\n"); print(citation("ggplot2"))
+cat("\n--- tidyr ---\n"); print(citation("tidyr"))
 ```
