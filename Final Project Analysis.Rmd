@@ -9,17 +9,21 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-library(dplyr)      
-library(ggplot2)   
-library(tidyr)       
+library(dplyr)
+library(ggplot2)
+library(tidyr)
 
 raw <- read.csv("../data/Time Spent on Short-video Platforms and Self-reported Difficulty on Academic Work Among University Students.csv",
                 stringsAsFactors = FALSE,
-                check.names = FALSE,          
+                check.names = FALSE,
                 encoding = "UTF-8",
                 na.strings = c("", "NA"))
 
-cat("Rows:", nrow(raw), "Cols:", ncol(raw), "\n")
+names(raw) <- c("timestamp", "consent", "gender", "age", "year",
+                "field", "adhd", "use_sv", "platforms", "sv_time",
+                "sv_when", "task_type", "sv_interrupt",
+                "concentration", "long_read", "phone_check",
+                "return_difficulty", "open_comment")
 ```
 
 
@@ -30,16 +34,14 @@ cat("Rows:", nrow(raw), "Cols:", ncol(raw), "\n")
 names(raw) <- c("timestamp", "consent", "gender", "age", "year",
                 "field", "adhd", "use_sv", "platforms", "sv_time",
                 "sv_when", "task_type", "sv_interrupt",
-                "concentration",       
-                "long_read",           
-                "phone_check",         
-                "return_difficulty",   
-                "open_comment")
+                "concentration", "long_read", "phone_check",
+                "return_difficulty", "open_comment")
 
+raw <- raw %>% mutate(across(where(is.character), trimws))
 
 # 2.2 Filter: only people who use short-video
 df <- raw %>% filter(use_sv == "Yes")
-cat("After filtering non-users: n =", nrow(df), "\n") 
+cat("After filtering non-users: n =", nrow(df), "\n")
 
 # 2.3 Convert IV to ordered factor
 df$sv_time <- factor(df$sv_time,
@@ -49,29 +51,26 @@ df$sv_time <- factor(df$sv_time,
                                 "2 to 3 hours",
                                 "More than 3 hours"),
                      ordered = TRUE)
-
 df$sv_time_num <- as.numeric(df$sv_time)
 
 # 2.4 Complete case analysis
-summary(df$concentration)
-
 n_before <- nrow(df)
-
 df <- df %>% filter(!is.na(concentration), !is.na(sv_time))
-
 n_after <- nrow(df)
-cat("Before complete-case filter: n =", n_before, "\n")
-cat("After complete-case filter:  n =", n_after, "\n")
-cat("Excluded due to missing IV/DV: n =", n_before - n_after, "\n")
+cat("Excluded due to missing IV/DV:", n_before - n_after, "\n")
+cat("Final n =", n_after, "\n")
 
 # 2.5 Clean field: merge small categories
 df$field_clean <- ifelse(df$field == "Accounting and Finance",
                          "Business & Management",
                          df$field)
 
+cat("\nField distribution:\n")
+print(table(df$field_clean, useNA = "always"))
+
 # 2.6 Final sanity check
-cat("\n--- Final analysis sample ---\n")
-cat("N =", nrow(df), "\n\n")
+cat("\n--- Final columns in df ---\n")
+print(names(df))
 
 cat("IV (sv_time) distribution:\n")
 print(table(df$sv_time))
@@ -250,4 +249,135 @@ p_h2 <- ggplot(df_h2, aes(x = usage_group, y = concentration, fill = usage_group
 
 ggsave("outputs/fig4_h2_boxplot.png", p_h2,
        width = 6, height = 5, dpi = 300)
+```
+
+#H3 — Exploratory Analyses
+```{r}
+cat("\n========== H3: EXPLORATORY ANALYSES ==========\n")
+
+# 6.1 Gender comparison (Mann-Whitney U) 
+cat("\n--- 6.1 Gender (Mann-Whitney U) ---\n")
+
+gender_mw <- wilcox.test(concentration ~ gender,
+                         data = df,
+                         alternative = "two.sided",
+                         exact = FALSE)
+print(gender_mw)
+
+gender_desc <- df %>%
+  group_by(gender) %>%
+  summarise(n = n(),
+            median = median(concentration),
+            IQR = IQR(concentration),
+            .groups = "drop")
+print(gender_desc)
+
+# Visualise
+p_h3_gender <- ggplot(df, aes(x = gender, y = concentration, fill = gender)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.15, alpha = 0.5) +
+  labs(x = "Gender",
+       y = "Concentration difficulty",
+       title = "Concentration difficulty by gender") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig5_h3_gender.png", p_h3_gender,
+       width = 6, height = 5, dpi = 300)
+
+# 6.2 ADHD 
+cat("\n--- 6.2 ADHD diagnosis ---\n")
+
+adhd_desc <- df %>%
+  group_by(adhd) %>%
+  summarise(n = n(),
+            median = median(concentration),
+            IQR = IQR(concentration),
+            .groups = "drop")
+print(adhd_desc)
+
+cat("Note: Inferential testing not feasible due to small subgroup sizes.\n")
+
+# 6.3 Field of study (Kruskal-Wallis) 
+cat("\n--- 6.3 Field of study (Kruskal-Wallis) ---\n")
+
+df$field_clean <- factor(df$field_clean,
+                         levels = c("Arts & Humanities",
+                                    "Business & Management",
+                                    "Social Sciences",
+                                    "Natural Sciences & Engineering"))
+
+kw_field <- kruskal.test(concentration ~ field_clean, data = df)
+print(kw_field)
+
+field_desc <- df %>%
+  group_by(field_clean) %>%
+  summarise(n = n(),
+            median = median(concentration),
+            IQR = IQR(concentration),
+            .groups = "drop")
+print(field_desc)
+
+if (kw_field$p.value < 0.05) {
+  cat("\nKW is significant. Compare group medians above.\n")
+} else {
+  cat("\nKW is not significant.\n")
+}
+
+# Visualise
+p_h3_field <- ggplot(df, aes(x = field_clean, y = concentration, fill = field_clean)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.15, alpha = 0.5) +
+  labs(x = "Field of study",
+       y = "Concentration difficulty",
+       title = "Concentration difficulty by field of study") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 20, hjust = 1))
+
+ggsave("outputs/fig6_h3_field.png", p_h3_field,
+       width = 7.5, height = 5, dpi = 300)
+
+# 6.4 Task type (Kruskal-Wallis) 
+cat("\n--- 6.4 Task type (Kruskal-Wallis) ---\n")
+
+df_task <- df %>%
+  filter(!is.na(task_type)) %>%
+  mutate(task_type_merged = case_when(
+    task_type %in% c("Lab or practical work", "Problem sets") ~ "Other technical work",
+    TRUE ~ task_type
+  ))
+
+df_task$task_type_merged <- factor(df_task$task_type_merged,
+                                    levels = c("Lecture attendance",
+                                               "Reading (journal articles, textbooks)",
+                                               "Writing (essays, dissertations)",
+                                               "Other technical work"))
+
+cat("Merged task_type distribution:\n")
+print(table(df_task$task_type_merged))
+
+kw_task <- kruskal.test(concentration ~ task_type_merged, data = df_task)
+print(kw_task)
+
+if (kw_task$p.value < 0.05) {
+  cat("\nKW is significant. Compare group medians above to identify which task type(s) differ.\n")
+} else {
+  cat("\nKW is not significant — concentration difficulty does not vary meaningfully by task type.\n")
+}
+
+# Visualise
+p_h3_task <- ggplot(df_task, aes(x = task_type_merged, y = concentration, fill = task_type_merged)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.15, alpha = 0.5) +
+  labs(x = "Primary academic task",
+       y = "Concentration difficulty",
+       title = "Concentration difficulty by primary academic task") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 20, hjust = 1))
+
+ggsave("outputs/fig7_h3_task.png", p_h3_task,
+       width = 7.5, height = 5, dpi = 300)
+
 ```
