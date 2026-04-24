@@ -83,3 +83,63 @@ cat("\nField (after merging) distribution:\n")
 print(table(df$field_clean))
 ```
 
+#Descriptive Statistics
+```{r}
+# 3.1 Sample characteristics
+cat("\n========== SAMPLE CHARACTERISTICS ==========\n")
+cat("N =", nrow(df), "\n\n")
+
+cat("--- Gender ---\n")
+print(table(df$gender))
+print(round(prop.table(table(df$gender)) * 100, 1))
+
+cat("\n--- Age ---\n")
+print(table(df$age))
+
+cat("\n--- Year of study ---\n")
+print(table(df$year))
+
+cat("\n--- Field of study (after merging) ---\n")
+print(table(df$field_clean))
+
+cat("\n--- ADHD diagnosis ---\n")
+print(table(df$adhd))
+
+# 3.2 IV distribution
+cat("\n--- IV: Daily short-video time ---\n")
+iv_dist <- df %>%
+  count(sv_time) %>%
+  mutate(pct = round(n / sum(n) * 100, 1))
+print(iv_dist)
+
+# 3.3 DV descriptive stats 
+cat("\n--- DV: Concentration difficulty ---\n")
+cat("Median =", median(df$concentration), "\n")
+cat("IQR =", IQR(df$concentration), "\n") 
+cat("Distribution:\n")
+print(table(df$concentration))
+
+# 3.4 Visualise IV distribution 
+p_iv <- ggplot(df, aes(x = sv_time)) +
+  geom_bar(fill = "steelblue") +
+  labs(x = "Daily short-video time",
+       y = "Count",
+       title = paste0("Distribution of daily short-video use (n=", nrow(df), ")")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1))
+
+ggsave("outputs/fig1_iv_distribution.png", p_iv,
+       width = 7, height = 4.5, dpi = 300)
+
+# 3.5 Visualise DV distribution
+p_dv <- ggplot(df, aes(x = factor(concentration))) +
+  geom_bar(fill = "coral") +
+  labs(x = "Concentration difficulty (1 = Strongly disagree, 5 = Strongly agree)",
+       y = "Count",
+       title = "Distribution of self-reported concentration difficulty") +
+  theme_minimal()
+
+ggsave("outputs/fig2_dv_distribution.png", p_dv,
+       width = 7, height = 4.5, dpi = 300)
+```
+
