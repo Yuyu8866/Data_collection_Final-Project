@@ -143,3 +143,59 @@ ggsave("outputs/fig2_dv_distribution.png", p_dv,
        width = 7, height = 4.5, dpi = 300)
 ```
 
+
+
+# H1 — Spearman's Rank-Order Correlation
+```{r}
+cat("\n========== H1: SPEARMAN CORRELATION ==========\n")
+
+# 4.1 Run the test 
+spearman_result <- cor.test(df$sv_time_num, df$concentration,
+                            method = "spearman",
+                            alternative = "two.sided",
+                            exact = FALSE)
+print(spearman_result)
+
+# 4.2 Extract key numbers for APA reporting 
+rs <- round(spearman_result$estimate, 3)
+p_val <- spearman_result$p.value
+p_val_fmt <- ifelse(p_val < .001, "< .001",
+                    paste0("= ", sprintf("%.3f", p_val)))
+
+cat("\n--- APA-style report ---\n")
+cat("Spearman's rs =", rs, ", p ", p_val_fmt,
+    ", n =", nrow(df), "\n")
+
+# Cohen's guideline
+effect_label <- ifelse(abs(rs) < 0.10, "negligible",
+                ifelse(abs(rs) < 0.30, "weak",
+                ifelse(abs(rs) < 0.50, "moderate", "strong")))
+cat("Effect size interpretation:", effect_label, "\n")
+
+# 4.3 Visualise H1 — jittered scatter 
+p_h1a <- ggplot(df, aes(x = sv_time_num, y = concentration)) +
+  geom_jitter(width = 0.2, height = 0.2, alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", se = TRUE, color = "darkred") +
+  scale_x_continuous(breaks = 1:5,
+                     labels = c("<30m", "30m-1h", "1-2h", "2-3h", ">3h")) +
+  scale_y_continuous(breaks = 1:5) +
+  labs(x = "Daily short-video time",
+       y = "Concentration difficulty",
+       title = paste0("Spearman's rs = ", rs, ", p ", p_val_fmt)) +
+  theme_minimal()
+
+ggsave("outputs/fig3_h1_scatter.png", p_h1a,
+       width = 7, height = 5, dpi = 300)
+
+# 4.4 Visualise H1 — boxplot by usage level 
+p_h1b <- ggplot(df, aes(x = sv_time, y = concentration)) +
+  geom_boxplot(fill = "lightblue") +
+  geom_jitter(width = 0.15, alpha = 0.4) +
+  labs(x = "Daily short-video time",
+       y = "Concentration difficulty") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1))
+
+ggsave("outputs/fig3_h1_boxplot.png", p_h1b,
+       width = 7, height = 5, dpi = 300)
+```
